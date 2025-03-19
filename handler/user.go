@@ -4,13 +4,25 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/agez0s/todoGo/config"
 	"github.com/agez0s/todoGo/schema"
 	"github.com/agez0s/todoGo/utils"
 	"github.com/gin-gonic/gin"
+	"github.com/golang-jwt/jwt"
 	"golang.org/x/crypto/bcrypt"
 )
 
 func (r *CreateUserRequest) ValidateCreateUser() error {
+	if r.Username == "" {
+		return fmt.Errorf("username is required")
+	}
+	if r.Password == "" {
+		return fmt.Errorf("password is required")
+	}
+	return nil
+}
+
+func (r *LoginRequest) ValidateLoginRequest() error {
 	if r.Username == "" {
 		return fmt.Errorf("username is required")
 	}
@@ -31,18 +43,18 @@ func checkPassword(password, hash string) bool {
 }
 
 func CreateUserHandler(ctx *gin.Context) {
-	request := CreateUserRequest{}
+	r := CreateUserRequest{}
 
-	ctx.BindJSON(&request)
+	ctx.BindJSON(&r)
 
-	if err := request.ValidateCreateUser(); err != nil {
+	if err := r.ValidateCreateUser(); err != nil {
 		logger.ErrorF("validation error: %v", err.Error())
 		utils.SendError(ctx, http.StatusBadRequest, err.Error())
 		return
 	}
 	var hashedPassword *string
 
-	hashTemp, err := hashPassword(request.Password)
+	hashTemp, err := hashPassword(r.Password)
 	if err != nil {
 		logger.ErrorF("error hashing password: %v", err.Error())
 		utils.SendError(ctx, http.StatusInternalServerError, "error creating user")
@@ -51,7 +63,7 @@ func CreateUserHandler(ctx *gin.Context) {
 	hashedPassword = &hashTemp
 
 	newuser := schema.User{
-		Username: request.Username,
+		Username: r.Username,
 		Password: *hashedPassword,
 	}
 
@@ -61,28 +73,86 @@ func CreateUserHandler(ctx *gin.Context) {
 		utils.SendError(ctx, http.StatusInternalServerError, "error creating user")
 		return
 	}
-	newToken := utils.GenerateToken(newuser.Username)
+	newToken, err1 := utils.GenerateToken(newuser)
+	if err1 != nil {
+		logger.ErrorF("error generating token: %v", err1.Error())
+		utils.SendError(ctx, http.StatusInternalServerError, "error generating token")
+		return
+	}
 	utils.SendSuccess(ctx, "create-user", gin.H{"username": newuser.Username, "token": newToken})
 }
 
 func LoginUserHandler(ctx *gin.Context) {
-	request := LoginRequest{}
+	r := LoginRequest{}
+	ctx.BindJSON(&r)
 
-	ctx.BindJSON(&request)
+	if err := r.ValidateLoginRequest(); err != nil {
+		fmt.Println(r)
+		logger.ErrorF("validation error: %v", err.Error())
+		utils.SendError(ctx, http.StatusBadRequest, err.Error())
+		return
+	}
 
 	var user schema.User
-	if err := db.Where("username = ?", request.Username).First(&user).Error; err != nil {
+	if err := db.Where("username = ?", r.Username).First(&user).Error; err != nil {
 		logger.ErrorF("error finding user: %v", err.Error())
 		utils.SendError(ctx, http.StatusUnauthorized, "invalid credentials")
 		return
 	}
 
-	if !checkPassword(request.Password, user.Password) {
+	if !checkPassword(r.Password, user.Password) {
 		logger.ErrorF("error invalid password")
 		utils.SendError(ctx, http.StatusUnauthorized, "invalid credentials")
 		return
 	}
 
-	newToken := utils.GenerateToken(user.Username)
+	newToken, err := utils.GenerateToken(user)
+	if err != nil {
+		logger.ErrorF("error generating token: %v", err.Error())
+		utils.SendError(ctx, http.StatusInternalServerError, "error generating token")
+		return
+	}
 	utils.SendSuccess(ctx, "login-user", gin.H{"username": user.Username, "token": newToken})
+}
+
+func AuthMiddleware() gin.HandlerFunc {
+	return func(ctx *gin.Context) {
+		authHeader := ctx.GetHeader("Authorization")
+		if authHeader == "" {
+			utils.SendError(ctx, http.StatusUnauthorized, "missing token")
+			ctx.Abort()
+			return
+		}
+
+		// Extract token from "Bearer <token>" format
+		const bearerPrefix = "Bearer "
+		if len(authHeader) <= len(bearerPrefix) || authHeader[:len(bearerPrefix)] != bearerPrefix {
+			utils.SendError(ctx, http.StatusUnauthorized, "invalid token format")
+			ctx.Abort()
+			return
+		}
+		tokenString := authHeader[len(bearerPrefix):]
+
+		token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+				return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+			}
+			return []byte(config.JWT_SECRET), nil
+		})
+		if err != nil || !token.Valid {
+			utils.SendError(ctx, http.StatusUnauthorized, "invalid token")
+			ctx.Abort()
+			return
+		}
+		if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
+			ctx.Set("claims", claims)
+			fmt.Println("setou:", claims)
+		} else {
+			utils.SendError(ctx, http.StatusUnauthorized, "invalid token claims")
+			ctx.Abort()
+			return
+		}
+
+		ctx.Next()
+	}
 }

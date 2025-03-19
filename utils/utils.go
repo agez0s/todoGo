@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/agez0s/todoGo/config"
+	"github.com/agez0s/todoGo/schema"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt"
 )
@@ -30,11 +31,40 @@ func SendSuccess(ctx *gin.Context, op string, data interface{}) {
 	})
 }
 
-func GenerateToken(u string) string {
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"username": u,
-		"exp":      time.Now().Add(time.Hour * 24).Unix(),
-	})
-	tokenString, _ := token.SignedString([]byte(config.JWT_SECRET))
-	return tokenString
+// func GenerateToken(u string) string {
+// 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+// 		"username": u,
+// 		"exp":      time.Now().Add(time.Hour * 24).Unix(),
+// 	})
+// 	tokenString, _ := token.SignedString([]byte(config.JWT_SECRET))
+// 	return tokenString
+// }
+
+type Claims struct {
+	Username string `json:"username"`
+	userID   string `json:"userID"`
+	exp      *int64 `json:"exp"`
+}
+
+func GenerateToken(d schema.User) (string, error) {
+
+	claims := jwt.MapClaims{}
+	claims["username"] = d.Username
+	claims["userID"] = d.ID
+	claims["exp"] = time.Now().Add(time.Hour * 24).Unix()
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+
+	return token.SignedString([]byte(config.JWT_SECRET))
+
+}
+
+func GetUsername(ctx *gin.Context) string {
+	t, ex := ctx.Get("claims")
+	if !ex {
+		SendError(ctx, http.StatusUnauthorized, "invalid token")
+		return ""
+	}
+	claims := t.(jwt.MapClaims)
+	return claims["username"].(string)
+
 }

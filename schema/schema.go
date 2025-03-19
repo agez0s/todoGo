@@ -11,12 +11,13 @@ type User struct {
 	ID       uint
 	Username string `gorm:"unique"`
 	Password string
+	Todos    []Todo `gorm:"foreignKey:UserId;references:id"`
 }
 
 type Todo struct {
 	gorm.Model
+	UserId      int
 	ID          uint
-	UserID      uint
 	Title       string
 	Done        bool
 	DoneTime    *time.Time
