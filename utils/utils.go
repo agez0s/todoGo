@@ -58,13 +58,13 @@ func GenerateToken(d schema.User) (string, error) {
 
 }
 
-func GetUsername(ctx *gin.Context) string {
-	t, ex := ctx.Get("claims")
-	if !ex {
-		SendError(ctx, http.StatusUnauthorized, "invalid token")
-		return ""
-	}
-	claims := t.(jwt.MapClaims)
-	return claims["username"].(string)
+// func GetUsername(ctx *gin.Context) string {
+// 	t, ex := ctx.Get("claims")
+// 	if !ex {
+// 		SendError(ctx, http.StatusUnauthorized, "invalid token")
+// 		return ""
+// 	}
+// 	claims := t.(jwt.MapClaims)
+// 	return claims["username"].(string)
 
-}
+// }

@@ -146,7 +146,6 @@ func AuthMiddleware() gin.HandlerFunc {
 		}
 		if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
 			ctx.Set("claims", claims)
-			fmt.Println("setou:", claims)
 		} else {
 			utils.SendError(ctx, http.StatusUnauthorized, "invalid token claims")
 			ctx.Abort()

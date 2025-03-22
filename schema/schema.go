@@ -19,7 +19,8 @@ type Todo struct {
 	UserId      int
 	ID          uint
 	Title       string
-	Done        bool
+	DueAt       *time.Time
+	Done        bool `gorm:"default:false"`
 	DoneTime    *time.Time
 	Description string
 }
@@ -37,5 +38,6 @@ type TodoResponse struct {
 	Title       string  `json:"title"`
 	Done        bool    `json:"done"`
 	DoneTime    *string `json:"done_time"`
+	DueAt       *string `json:"due_at"`
 	Description string  `json:"description"`
 }
