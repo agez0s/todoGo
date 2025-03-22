@@ -20,6 +20,9 @@ func initializeRoutes(router *gin.Engine) {
 
 	//todo routes
 	v1.POST("/todo/create", handler.AuthMiddleware(), handler.CreateTodoHandler)
+	v1.POST("/todo/update", handler.AuthMiddleware(), handler.UpdateTodoHandler)
+	v1.GET("/todo/list", handler.AuthMiddleware(), handler.ListTodosHandler)
+	v1.DELETE("/todo/delete/:id", handler.AuthMiddleware(), handler.DeleteTodoHandler)
 
 	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerfiles.Handler))
 }
