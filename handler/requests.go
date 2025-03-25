@@ -20,9 +20,8 @@ type CreateTodoRequest struct {
 }
 
 type UpdateTodoRequest struct {
-	ID          int    `json:"id"`
-	Title       string `json:"title"`
-	Description string `json:"description"`
-	DueAt       string `json:"dueAt"`
-	Done        bool   `json:"done"`
+	ID          int     `json:"id"`
+	Title       string  `json:"title"`
+	Description string  `json:"description"`
+	DueAt       *string `json:"dueAt"`
 }

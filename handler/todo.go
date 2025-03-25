@@ -3,6 +3,7 @@ package handler
 import (
 	"fmt"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/agez0s/todoGo/schema"
@@ -67,6 +68,14 @@ func CreateTodoHandler(c *gin.Context) {
 }
 
 func ListTodosHandler(c *gin.Context) {
+	page, err := strconv.ParseUint(c.Query("page"), 10, 0)
+	if err != nil {
+		page = 1
+	}
+	if page < 1 {
+		page = 1
+	}
+
 	u := c.MustGet("claims").(jwt.MapClaims)
 	uid, ok := u["userID"].(float64)
 	if !ok {
@@ -75,7 +84,9 @@ func ListTodosHandler(c *gin.Context) {
 	}
 
 	var todos []schema.Todo
-	if err := db.Where("user_id = ?", int(uid)).Find(&todos).Error; err != nil {
+	limit := 10
+	offset := (int(page) - 1) * limit
+	if err := db.Where("user_id = ?", int(uid)).Limit(limit).Offset(offset).Find(&todos).Error; err != nil {
 		logger.ErrorF("error getting todos: %v", err.Error())
 		utils.SendError(c, http.StatusInternalServerError, "error getting todos")
 		return
@@ -94,7 +105,7 @@ func UpdateTodoHandler(c *gin.Context) {
 
 	c.BindJSON(&r)
 
-	if r.Title == "" && r.Description == "" && r.DueAt == "" {
+	if r.Title == "" && r.Description == "" && r.DueAt == nil {
 		utils.SendError(c, http.StatusBadRequest, "at least one field is required")
 		return
 	}
@@ -108,17 +119,16 @@ func UpdateTodoHandler(c *gin.Context) {
 
 	todo.Title = r.Title
 	todo.Description = r.Description
-	parsedTime, err := time.Parse(time.RFC3339, r.DueAt)
-	if err != nil {
-		logger.ErrorF("invalid due date format: %v", err.Error())
-		utils.SendError(c, http.StatusBadRequest, "invalid due date format, expected RFC3339")
-		return
-	}
-	todo.DueAt = &parsedTime
-	todo.Done = r.Done
-	if r.Done {
-		now := time.Now()
-		todo.DoneTime = &now
+	//make that if dueAt is nil, it should not be updated
+	if r.DueAt != nil {
+
+		parsedTime, err := time.Parse(time.RFC3339, *r.DueAt)
+		if err != nil {
+			logger.ErrorF("invalid due date format: %v", err.Error())
+			utils.SendError(c, http.StatusBadRequest, "invalid due date format, expected RFC3339")
+			return
+		}
+		todo.DueAt = &parsedTime
 	}
 	if err := db.Save(&todo).Error; err != nil {
 		logger.ErrorF("error updating todo: %v", err.Error())
@@ -132,6 +142,7 @@ func MarkDoneHandler(c *gin.Context) {
 	id := c.Query("id")
 	u := c.MustGet("claims").(jwt.MapClaims)
 	uid, ok := u["userID"].(float64)
+	now := time.Now()
 	if !ok {
 		utils.SendError(c, http.StatusInternalServerError, "error getting user id")
 		return
@@ -140,7 +151,7 @@ func MarkDoneHandler(c *gin.Context) {
 		utils.SendError(c, http.StatusBadRequest, "id is required")
 		return
 	}
-	if err := db.Model(&schema.Todo{}).Where("id = ?", id).Where("user_id = ?", uid).Update("done", true).Error; err != nil {
+	if err := db.Model(&schema.Todo{}).Where("id = ?", id).Where("user_id = ?", uid).Updates(schema.Todo{DoneTime: &now, Done: true}).Error; err != nil {
 		logger.ErrorF("error marking todo as done: %v", err.Error())
 		utils.SendError(c, http.StatusInternalServerError, "error marking todo as done")
 		return
