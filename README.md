@@ -1,9 +1,9 @@
 # TodoGo
 
-TodoGo é uma API RESTful escrita em Go para gerenciar tarefas (todos) e usuários. O projeto utiliza o framework Gin para lidar com rotas HTTP, GORM para interagir com o banco de dados SQLite e JWT para autenticação. Esse é o meu primeiro projeto em Golang. Comecei com um tutorial para fazer CRUD e implementei a parte de JWT e Usuários.
-Cada Usuário possui suas Todos, e um usuário não consegue interagir com as de outro usuário.
+TodoGo é uma API RESTful escrita em Go para gerenciar tarefas (todos) e usuários. O projeto utiliza o framework Gin para lidar com rotas HTTP, GORM para interagir com o banco de dados SQLite e JWT para autenticação. Esse é o meu primeiro projeto em Golang. Comecei com um tutorial para fazer CRUD e implementei a parte de JWT e Usuários. 
+Cada Usuário possui suas Todos, e um usuário não consegue interagir com as de outro usuário. Decidi fazer desta maneira para se parecer mais com um "projeto real", visto que esse repositório foi feito apenas com fins acadêmicos.
 
-Fiz esse projeto simples para me familiarizar com a linguagem. Apesar de algumas dificuldades iniciais, consegui fazer o mínimo que eu considero "útil". Acredito que algumas partes podem ser melhor otimizadas (como a parte do JWT), e possivelmente possui algumas falhas de segurança na parte do GORM/SQLite, visto que é um ORM mas bem "cru" e em alguns casos permite um ataque de SQL Injection. 
+Apesar de algumas dificuldades iniciais, consegui fazer o mínimo que eu considero "útil". Acredito que algumas partes podem ser melhor otimizadas (como a parte do JWT), e possivelmente possui algumas falhas de segurança na parte do GORM/SQLite, visto que é um ORM mas bem "cru" e em alguns casos permite um ataque de SQL Injection. 
 A parte do SQL Injection é bem documentada pelo gorm, e acredito que não tenha nenhuma vulnerabilidade neste quesito.
 
 ## Funcionalidades
@@ -19,9 +19,6 @@ A parte do SQL Injection é bem documentada pelo gorm, e acredito que não tenha
   - Atualização de tarefas.
   - Marcar tarefas como concluídas.
   - Exclusão de tarefas.
-
-- **Documentação Swagger**:
-  - Documentação interativa disponível em `/swagger`.
 
 ## Estrutura do Projeto
 
@@ -74,19 +71,25 @@ A API estará disponível em http://localhost:8080
 
 ## Endpoints
 ### Autenticação
-POST /api/v1/auth/newUser: Criação de um novo usuário.\
-POST /api/v1/auth/login: Login de usuário.\
-GET /api/v1/auth/profile: Recupera o perfil do usuário autenticado.\
+POST **`/api/v1/auth/newUser`**: Criação de um novo usuário.\
+POST **`/api/v1/auth/login`**: Login de usuário.\
+GET **`/api/v1/auth/profile`**: Recupera o perfil do usuário autenticado.\
 
 ### Tarefas
-POST /api/v1/todo/create: Criação de uma nova tarefa.\
-GET /api/v1/todo/list: Listagem de tarefas.\
-PATCH /api/v1/todo/update: Atualização de uma tarefa.\
-POST /api/v1/todo/complete: Marca uma tarefa como concluída.\
-DELETE /api/v1/todo/delete: Exclui uma tarefa.
+POST **`/api/v1/todo/create`**: Criação de uma nova tarefa.\
+GET **`/api/v1/todo/list`**: Listagem de tarefas.\
+PATCH **`/api/v1/todo/update`**: Atualização de uma tarefa.\
+POST **`/api/v1/todo/complete`**: Marca uma tarefa como concluída.\
+DELETE **`/api/v1/todo/delete`**: Exclui uma tarefa.
 
 ## Tecnologias Utilizadas
 Gin: Framework web.\
 GORM: ORM para Go.\
 SQLite: Banco de dados leve.\
 JWT: Autenticação baseada em tokens.
+
+## A Implementar
+
+- Rate Limiting
+- Swagger
+
